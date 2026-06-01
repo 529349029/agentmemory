@@ -179,6 +179,7 @@ export class IndexPersistence {
       this.options.createGeneration?.() ?? createIndexGeneration();
     const chunkChars = shardChars(this.options);
     const shards: IndexShardManifest["shards"] = [];
+    const chunks: string[] = [];
 
     for (let offset = 0; offset < serialized.length; offset += chunkChars) {
       const shardIndex = shards.length;
@@ -188,21 +189,30 @@ export class IndexPersistence {
       )}`;
       const chunk = serialized.slice(offset, offset + chunkChars);
       shards.push({ scope, key: INDEX_SHARD_KEY, chars: chunk.length });
-      try {
-        await this.kv.set(scope, INDEX_SHARD_KEY, chunk);
+      chunks.push(chunk);
+    }
+
+    const writeResults = await Promise.allSettled(
+      shards.map(async (shard, index) => {
+        const chunk = chunks[index] ?? "";
+        await this.kv.set(shard.scope, shard.key, chunk);
         await this.auditIndexPersistence("shard_write", [
-          statePath(scope, INDEX_SHARD_KEY),
+          statePath(shard.scope, shard.key),
         ], {
-          scope,
-          key: INDEX_SHARD_KEY,
+          scope: shard.scope,
+          key: shard.key,
           manifestKey,
           generation,
           chars: chunk.length,
         });
-      } catch (err) {
-        await this.deleteShards(shards, "shard_write_rollback");
-        throw err;
-      }
+      }),
+    );
+    const failedWrite = writeResults.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+    if (failedWrite) {
+      await this.deleteShards(shards, "shard_write_rollback");
+      throw failedWrite.reason;
     }
 
     const nextManifest: IndexShardManifest = {
