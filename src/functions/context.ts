@@ -121,10 +121,13 @@ export function registerContextFunction(
           )
           .join("\n");
         const lessonsContent = `## Lessons Learned\n${items}`;
+        const mostRecent = Date.now();
+          /*
         const mostRecent = relevantLessons.reduce((acc, l) => {
           const t = new Date(l.lastReinforcedAt || l.updatedAt).getTime();
           return t > acc ? t : acc;
         }, 0);
+        */
         blocks.push({
           type: "memory",
           content: lessonsContent,
