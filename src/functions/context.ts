@@ -1,4 +1,5 @@
 import type { ISdk } from "iii-sdk";
+import { getEnvVar } from "../config.js";
 import type {
   Session,
   CompressedObservation,
@@ -38,6 +39,7 @@ export function registerContextFunction(
   sdk.registerFunction("mem::context", 
     async (data: { sessionId: string; project: string; budget?: number }) => {
       const budget = data.budget || tokenBudget;
+      const lessonsCap = parseInt(getEnvVar("LESSONS_CAP") || "10", 10);
       const blocks: ContextBlock[] = [];
 
       const [pinnedSlots, profile, lessons] = await Promise.all([
@@ -109,7 +111,7 @@ export function registerContextFunction(
           const scoreB = (b.project === data.project ? 1.5 : 1) * b.confidence;
           return scoreB - scoreA;
         })
-        .slice(0, 10);
+        .slice(0, lessonsCap);
 
       if (relevantLessons.length > 0) {
         const items = relevantLessons

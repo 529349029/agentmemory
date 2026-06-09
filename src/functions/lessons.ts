@@ -203,6 +203,66 @@ export function registerLessonsFunctions(sdk: ISdk, kv: StateKV): void {
     },
   );
 
+  sdk.registerFunction("mem::lesson-delete", 
+    async (data: { lessonId: string }) => {
+      if (!data.lessonId) {
+        return { success: false, error: "lessonId is required" };
+      }
+
+      const lesson = await kv.get<Lesson>(KV.lessons, data.lessonId);
+      if (!lesson) {
+        return { success: false, error: "lesson not found" };
+      }
+      if (lesson.deleted) {
+        return { success: false, error: "lesson already deleted" };
+      }
+
+      // Soft delete — 和 decay-sweep 的 deleted=true 一致
+      lesson.deleted = true;
+      lesson.updatedAt = new Date().toISOString();
+      await kv.set(KV.lessons, lesson.id, lesson);
+
+      try {
+        await recordAudit(kv, "lesson_delete", "mem::lesson-delete", [lesson.id]);
+      } catch {}
+
+      return { success: true, lesson };
+    },
+  );
+
+  sdk.registerFunction("mem::lesson-update", 
+    async (data: { lessonId: string; confidence?: number; content?: string; context?: string; tags?: string[] }) => {
+      if (!data.lessonId) {
+        return { success: false, error: "lessonId is required" };
+      }
+      const lesson = await kv.get<Lesson>(KV.lessons, data.lessonId);
+      if (!lesson || lesson.deleted) {
+        return { success: false, error: "lesson not found or deleted" };
+      }
+      if (typeof data.confidence === "number") {
+        lesson.confidence = Math.max(0, Math.min(1, data.confidence));
+      }
+      if (typeof data.content === "string" && data.content.trim()) {
+        lesson.content = data.content.trim();
+      }
+      if (typeof data.context === "string") {
+        lesson.context = data.context.trim();
+      }
+      if (Array.isArray(data.tags)) {
+        lesson.tags = data.tags;
+      }
+      lesson.updatedAt = new Date().toISOString();
+      await kv.set(KV.lessons, lesson.id, lesson);
+
+      try {
+        await recordAudit(kv, "lesson_update", "mem::lesson-update", [lesson.id]);
+      } catch {}
+
+      return { success: true, lesson };
+    },
+  );
+
+
   sdk.registerFunction("mem::lesson-decay-sweep", 
     async () => {
       const lessons = await kv.list<Lesson>(KV.lessons);
