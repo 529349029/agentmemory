@@ -2188,6 +2188,45 @@ export function registerApiTriggers(
     config: { api_path: "/agentmemory/slot", http_method: "DELETE" },
   });
 
+  sdk.registerFunction("api::lesson-delete", async (req: ApiRequest): Promise<Response> => {
+    const authErr = checkAuth(req, secret);
+    if (authErr) return authErr;
+    if (!req.body?.lessonId) {
+      return { status_code: 400, body: { error: "lessonId is required" } };
+    }
+    const result = await sdk.trigger({ function_id: "mem::lesson-delete", payload: { lessonId: req.body.lessonId } });
+    const resp = result as { success?: boolean; error?: string };
+    if (resp?.success === false) {
+      return { status_code: resp.error?.includes("not found") ? 404 : 400, body: resp };
+    }
+    return { status_code: 200, body: result };
+  });
+  sdk.registerTrigger({
+    type: "http",
+    function_id: "api::lesson-delete",
+    config: { api_path: "/agentmemory/lesson/delete", http_method: "POST" },
+  });
+
+  sdk.registerFunction("api::lesson-update", async (req: ApiRequest): Promise<Response> => {
+    const authErr = checkAuth(req, secret);
+    if (authErr) return authErr;
+    if (!req.body?.lessonId) {
+      return { status_code: 400, body: { error: "lessonId is required" } };
+    }
+    const result = await sdk.trigger({ function_id: "mem::lesson-update", payload: { lessonId: req.body.lessonId, confidence: req.body.confidence, content: req.body.content, context: req.body.context, tags: req.body.tags } });
+    const resp = result as { success?: boolean; error?: string };
+    if (resp?.success === false) {
+      return { status_code: resp.error?.includes("not found") ? 404 : 400, body: resp };
+    }
+    return { status_code: 200, body: result };
+  });
+  sdk.registerTrigger({
+    type: "http",
+    function_id: "api::lesson-update",
+    config: { api_path: "/agentmemory/lesson/update", http_method: "POST" },
+  });
+
+
   sdk.registerFunction("api::slot-reflect", async (req: ApiRequest): Promise<Response> => {
     const authErr = checkAuth(req, secret);
     if (authErr) return authErr;
