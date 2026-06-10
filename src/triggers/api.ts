@@ -2213,7 +2213,13 @@ export function registerApiTriggers(
     if (!req.body?.lessonId) {
       return { status_code: 400, body: { error: "lessonId is required" } };
     }
-    const result = await sdk.trigger({ function_id: "mem::lesson-update", payload: { lessonId: req.body.lessonId, confidence: req.body.confidence, content: req.body.content, context: req.body.context, tags: req.body.tags } });
+    const payload: Record<string, unknown> = { lessonId: req.body.lessonId };
+    if (req.body.confidence !== undefined) payload.confidence = req.body.confidence;
+    if (req.body.content !== undefined) payload.content = req.body.content;
+    if (req.body.context !== undefined) payload.context = req.body.context;
+    if (req.body.tags !== undefined) payload.tags = req.body.tags;
+    if (req.body.project !== undefined) payload.project = req.body.project;
+    const result = await sdk.trigger({ function_id: "mem::lesson-update", payload });
     const resp = result as { success?: boolean; error?: string };
     if (resp?.success === false) {
       return { status_code: resp.error?.includes("not found") ? 404 : 400, body: resp };
