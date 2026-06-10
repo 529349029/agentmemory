@@ -231,7 +231,7 @@ export function registerLessonsFunctions(sdk: ISdk, kv: StateKV): void {
   );
 
   sdk.registerFunction("mem::lesson-update", 
-    async (data: { lessonId: string; confidence?: number; content?: string; context?: string; tags?: string[] }) => {
+    async (data: { lessonId: string; confidence?: number; content?: string; context?: string; tags?: string[]; project?: string }) => {
       if (!data.lessonId) {
         return { success: false, error: "lessonId is required" };
       }
@@ -250,6 +250,9 @@ export function registerLessonsFunctions(sdk: ISdk, kv: StateKV): void {
       }
       if (Array.isArray(data.tags)) {
         lesson.tags = data.tags;
+      }
+      if (typeof data.project === "string") {
+        lesson.project = data.project.trim();
       }
       lesson.updatedAt = new Date().toISOString();
       await kv.set(KV.lessons, lesson.id, lesson);
