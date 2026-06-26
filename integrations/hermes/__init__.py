@@ -90,11 +90,6 @@ def _preload_agentmemory_dotenv() -> None:
                     os.environ.setdefault(key, value)
         except (OSError, UnicodeDecodeError):
             continue
-    # Guarantee AGENTMEMORY_URL is set so `hermes memory status` never
-    # reports it as Missing when a user runs agentmemory at the default
-    # localhost:3111 (or via systemd with the URL line commented out in
-    # ~/.agentmemory/.env because it matches the default). #520.
-    os.environ.setdefault("AGENTMEMORY_URL", DEFAULT_BASE_URL)
 
 
 _preload_agentmemory_dotenv()
@@ -362,16 +357,16 @@ class AgentMemoryProvider(MemoryProvider):
             "sessionId": kwargs.get("session_id", self._session_id),
         })
 
-    def on_pre_compress(self, messages: list, **kwargs: Any) -> None:
-        result = _api(self._base, "context", {
-            "sessionId": kwargs.get("session_id", self._session_id),
-            "project": self._project,
-        })
-        if result and result.get("context"):
-            messages.insert(0, {
-                "role": "user",
-                "content": f"[agentmemory context before compaction]\n{result['context']}",
-            })
+    # def on_pre_compress(self, messages: list, **kwargs: Any) -> None:
+    #     result = _api(self._base, "context", {
+    #         "sessionId": kwargs.get("session_id", self._session_id),
+    #         "project": self._project,
+    #     })
+    #     if result and result.get("context"):
+    #         messages.insert(0, {
+    #             "role": "user",
+    #             "content": f"[agentmemory context before compaction]\n{result['context']}",
+    #         })
 
     def on_memory_write(self, action: str, target: str, content: str, **kwargs: Any) -> None:
         if action in ("add", "update") and content:
