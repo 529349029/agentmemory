@@ -11,6 +11,9 @@
  *   node amc.js lessons set <id> <content> [--confidence=N] [--tags="a,b"] [--context="..."] [--source=manual]
  *   node amc.js lessons add <content>
  *   node amc.js lessons delete <id>
+ *   node amc.js lessons delete lsn_34c04255c369a515
+ *   node amc.js lessons update-confidence <id> <confidence>
+ *   node amc.js lessons update-confidence lsn_34c04255c369a515 0.95
  *
  *   # Slots
  *   node amc.js slots list
@@ -22,11 +25,11 @@
 使用说明
 命令                            默认行为                         可选参数
 ──────────────────────────────  ───────────────────────────────  ──────────────
-slots list                      显示所有（project + global）     —
-slots get <label>               先查 project，找不到再查 global  --scope=global
-slots set <label> <content>     先查 project，找不到再查 global  --scope=global
-slots create <label> <content>  创建 project scope slot          --scope=global
-slots delete <label>            先查 project，找不到再查 global  --scope=global
+node amc.js slots list                      显示所有（project + global）     —
+node amc.js slots get <label>               先查 project，找不到再查 global  --scope=global
+node amc.js slots set <label> <content>     先查 project，找不到再查 global  --scope=global
+node amc.js slots create <label> <content>  创建 project scope slot          --scope=global
+node amc.js slots delete <label>            先查 project，找不到再查 global  --scope=global
 
 示例
 
@@ -43,16 +46,16 @@ node amc.js slots set persona "内容" --scope=global
 node amc.js slots create tool_guidelines "优先使用 tesseract OCR，不要调用大模型 vision API" --scope=global
 # 删除 global scope 的 slot
 node amc.js slots delete tool_guidelines --scope=global
-
+  
 使用说明
 
 命令                            默认行为                         可选参数
 ──────────────────────────────  ───────────────────────────────  ──────────────
-slots list                      显示所有（project + global）     —
-slots get <label>               先查 project，找不到再查 global  --scope=global
-slots set <label> <content>     先查 project，找不到再查 global  --scope=global
-slots create <label> <content>  创建 project scope slot          --scope=global
-slots delete <label>            先查 project，找不到再查 global  --scope=global
+node amc.js slots list                      显示所有（project + global）     —
+node amc.js slots get <label>               先查 project，找不到再查 global  --scope=global
+node amc.js slots set <label> <content>     先查 project，找不到再查 global  --scope=global
+node amc.js slots create <label> <content>  创建 project scope slot          --scope=global
+node amc.js slots delete <label>            先查 project，找不到再查 global  --scope=global
 
 示例
 
@@ -196,7 +199,9 @@ function lessonsSet(id, content, options = {}) {
     process.exit(1);
   }
 
-  item.content = content;
+  if (content !== null) {
+    item.content = content;
+  }
 
   if (options.confidence !== undefined) {
     const c = parseFloat(options.confidence);
@@ -237,6 +242,23 @@ function lessonsAdd(content) {
 function lessonsDelete(id) {
   runStateDelete('mem:lessons', id);
   console.log(`✓ Lesson ${id} deleted`);
+}
+
+function lessonsUpdateConfidence(id, confidence) {
+  const item = runStateGet('mem:lessons', id);
+  if (!item) {
+    console.error(`Lesson ${id} not found`);
+    process.exit(1);
+  }
+  const c = parseFloat(confidence);
+  if (isNaN(c) || c < 0 || c > 1) {
+    console.error(`Invalid confidence: ${confidence} (must be 0-1)`);
+    process.exit(1);
+  }
+  item.confidence = c;
+  item.updatedAt = new Date().toISOString();
+  runStateSet('mem:lessons', id, item);
+  console.log(`✓ Lesson ${id} confidence updated: ${item.confidence}`);
 }
 
 // ===== Slots =====
@@ -370,23 +392,25 @@ if (args.length < 1) {
     → 查看单个 lesson 的完整 JSON 详情
     示例: node amc.js lessons get lsn_585929ed1021b504
 
-  node amc.js lessons set <id> <content> [--confidence=N] [--tags="a,b"] [--context="..."] [--source=manual]
-    → 修改 lesson 的 content（必选）及其他可选字段
+  node amc.js lessons set <id> [--confidence=N] [--tags="a,b"] [--context="..."] [--source=manual]
+    → 修改 lesson 的可选字段（不指定 content 时保留原内容）
+    至少提供一项可选参数，或同时提供 content。
 
-    示例1 - 只修改 content:
+    示例1 - 只改 confidence：
+      node amc.js lessons set lsn_xxx --confidence=0.95
+
+    示例2 - 修改 content：
       node amc.js lessons set lsn_xxx "图片解析优先走 image-ocr 技能"
 
-    示例2 - 修改 content + confidence + tags:
+    示例3 - 修改 content + confidence + tags：
       node amc.js lessons set lsn_xxx "图片解析优先走 image-ocr 技能" --confidence=0.95 --tags="省token,图片解析"
 
-    示例3 - 修改所有可选字段:
-      node amc.js lessons set lsn_xxx "新内容" --confidence=0.9 --tags="规则,图片解析" --context="用户明确要求" --source=manual
-
-    可选字段说明:
-      --confidence=N   置信度，0-1 之间的数字（如 0.9）
-      --tags="a,b"     标签，逗号分隔（如 "省token,图片解析"）
-      --context="..."  上下文描述
-      --source=xxx     来源：manual | crystal | consolidation
+    可选字段说明：
+      content         新内容（不传则保留原内容）
+      --confidence=N  置信度，0-1 之间的数字（如 0.9）
+      --tags="a,b"    标签，逗号分隔（如 "省token,图片解析"）
+      --context="..." 上下文描述
+      --source=xxx    来源：manual | crystal | consolidation
 
   node amc.js lessons add <content>
     → 新增 lesson，自动通过 mem::lesson-save API 创建
@@ -395,6 +419,10 @@ if (args.length < 1) {
   node amc.js lessons delete <id>
     → 删除 lesson
     示例: node amc.js lessons delete lsn_xxx
+
+  node amc.js lessons update-confidence <id> <confidence>
+    → 只更新 lesson 的 confidence（不修改 content）
+    示例: node amc.js lessons update-confidence lsn_xxx 0.95
 
 ================================ SLOTS ==================================
 
@@ -439,13 +467,15 @@ if (cmd === 'lessons') {
     lessonsGet(args[2]);
   } else if (subCmd === 'set' && args[2]) {
     const id = args[2];
-    let content = args[3] || '';
-    if (!content) {
-      console.error('Usage: lessons set <id> <content> [--confidence=N] [--tags="a,b"] [--context="..."] [--source=manual]');
-      process.exit(1);
+    let content = null;
+    let optionsStart = 3;
+    // If args[3] starts with '--', it's an option (no content provided)
+    if (args[3] && !args[3].startsWith('--')) {
+      content = args[3];
+      optionsStart = 4;
     }
     const options = {};
-    for (const arg of args.slice(4)) {
+    for (const arg of args.slice(optionsStart)) {
       if (arg.startsWith('--confidence=')) options.confidence = arg.split('=', 2)[1];
       else if (arg.startsWith('--tags=')) options.tags = arg.split('=', 2)[1];
       else if (arg.startsWith('--context=')) options.context = arg.split('=', 2)[1];
@@ -455,13 +485,29 @@ if (cmd === 'lessons') {
         process.exit(1);
       }
     }
-    lessonsSet(id, content, options);
+    if (!content && !options.confidence && !options.tags && !options.context && !options.source) {
+      console.error('Nothing to update. Provide content and/or at least one option (--confidence, --tags, --context, --source).');
+      process.exit(1);
+    }
+    lessonsSet(id, content || null, options);
   } else if (subCmd === 'add' && args[2]) {
     lessonsAdd(args[2]);
   } else if (subCmd === 'delete' && args[2]) {
     lessonsDelete(args[2]);
+  } else if (subCmd === 'update-confidence' && args[2]) {
+    if (!args[3]) {
+      console.error('Usage: lessons update-confidence <id> <confidence>');
+      console.error('  confidence: 0-1 (e.g. 0.95)');
+      process.exit(1);
+    }
+    const c = parseFloat(args[3]);
+    if (isNaN(c) || c < 0 || c > 1) {
+      console.error(`Invalid confidence: ${args[3]} (must be 0-1)`);
+      process.exit(1);
+    }
+    lessonsUpdateConfidence(args[2], args[3]);
   } else {
-    console.error('Usage: lessons <list|get|set|add|delete> [args]');
+    console.error('Usage: lessons <list|get|set|add|delete|update-confidence> [args]');
     process.exit(1);
   }
 } else if (cmd === 'slots') {

@@ -15,18 +15,18 @@
  *   # Slots
  *   node amc.js slots list
  *   node amc.js slots get <label>
- *   node amc.js slots set <label> <content>
+ *   node amc.js slots set <label> <content>,   eg: node amc.js slots set persona "测试" --scope=global
  *   node amc.js slots create <label> <content>
  *   node amc.js slots delete <label>
  * 
 使用说明
 命令                            默认行为                         可选参数
 ──────────────────────────────  ───────────────────────────────  ──────────────
-slots list                      显示所有（project + global）     —
-slots get <label>               先查 project，找不到再查 global  --scope=global
-slots set <label> <content>     先查 project，找不到再查 global  --scope=global
-slots create <label> <content>  创建 project scope slot          --scope=global
-slots delete <label>            先查 project，找不到再查 global  --scope=global
+node slots list                      显示所有（project + global）     —
+node slots get <label>               先查 project，找不到再查 global  --scope=global
+node slots set <label> <content>     先查 project，找不到再查 global  --scope=global
+node slots create <label> <content>  创建 project scope slot          --scope=global
+node  slots delete <label>            先查 project，找不到再查 global  --scope=global
 
 示例
 
@@ -38,7 +38,7 @@ node amc.js slots get persona --scope=global
 # 修改 slot（默认找 project，找不到找 global）
 node amc.js slots set persona "你是商汤科技开发的日日新融合模态大模型，中文名叫商量"
 # 强制修改 global scope 的 slot
-node amc.js slots set persona "内容" --scope=global
+node amc.js slots set persona "" --scope=global
 # 创建全局 slot（所有项目共享）
 node amc.js slots create tool_guidelines "优先使用 tesseract OCR，不要调用大模型 vision API" --scope=global
 # 删除 global scope 的 slot

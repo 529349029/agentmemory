@@ -65,7 +65,7 @@ export function registerContextFunction(
         if (profile.topConcepts.length > 0) {
           profileParts.push(
             `Concepts: ${profile.topConcepts
-              .slice(0, 8)
+              .slice(0, 3)
               .map((c) => c.concept)
               .join(", ")}`,
           );
@@ -73,7 +73,7 @@ export function registerContextFunction(
         if (profile.topFiles.length > 0) {
           profileParts.push(
             `Key files: ${profile.topFiles
-              .slice(0, 5)
+              .slice(0, 3)
               .map((f) => f.file)
               .join(", ")}`,
           );
@@ -140,7 +140,7 @@ export function registerContextFunction(
           (a, b) =>
             new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
         )
-        .slice(0, 10);
+        .slice(0, 3);
 
       const summariesPerSession = await Promise.all(
         sessions.map((s) =>
